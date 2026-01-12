@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,6 +28,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { toast } from "sonner";
 
 interface Document {
   id: string;
@@ -44,6 +45,52 @@ const Documents = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [isDragging, setIsDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFiles = useCallback((files: File[]) => {
+    // Filter valid files
+    const validFiles = files.filter(file => {
+      const ext = file.name.toLowerCase();
+      return ext.endsWith('.pdf') || ext.endsWith('.docx');
+    });
+
+    if (validFiles.length === 0) {
+      toast.error("Please upload PDF or DOCX files only");
+      return;
+    }
+
+    if (validFiles.length !== files.length) {
+      toast.warning("Some files were skipped (only PDF/DOCX allowed)");
+    }
+
+    setUploading(true);
+    
+    const newDocs: Document[] = validFiles.map((file, idx) => ({
+      id: `new-${Date.now()}-${idx}`,
+      name: file.name,
+      type: file.name.toLowerCase().endsWith(".pdf") ? "pdf" : "docx",
+      size: `${(file.size / (1024 * 1024)).toFixed(1)} MB`,
+      uploadedAt: new Date(),
+      status: "processing" as const,
+      accessRole: "all",
+    }));
+
+    setDocuments((prev) => [...newDocs, ...prev]);
+    toast.success(`${validFiles.length} file(s) uploading...`);
+
+    // Simulate processing completion
+    setTimeout(() => {
+      setDocuments((prev) =>
+        prev.map((doc) =>
+          newDocs.find((nd) => nd.id === doc.id)
+            ? { ...doc, status: "ready" as const }
+            : doc
+        )
+      );
+      setUploading(false);
+      toast.success(`${validFiles.length} file(s) ready!`);
+    }, 3000);
+  }, []);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -61,40 +108,19 @@ const Documents = () => {
     
     const files = Array.from(e.dataTransfer.files);
     handleFiles(files);
-  }, []);
+  }, [handleFiles]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files ? Array.from(e.target.files) : [];
     handleFiles(files);
+    // Reset input so same file can be selected again
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
-  const handleFiles = (files: File[]) => {
-    setUploading(true);
-    
-    // Simulate upload
-    const newDocs: Document[] = files.map((file, idx) => ({
-      id: `new-${Date.now()}-${idx}`,
-      name: file.name,
-      type: file.name.endsWith(".pdf") ? "pdf" : "docx",
-      size: `${(file.size / (1024 * 1024)).toFixed(1)} MB`,
-      uploadedAt: new Date(),
-      status: "processing" as const,
-      accessRole: "all",
-    }));
-
-    setDocuments((prev) => [...newDocs, ...prev]);
-
-    // Simulate processing completion
-    setTimeout(() => {
-      setDocuments((prev) =>
-        prev.map((doc) =>
-          newDocs.find((nd) => nd.id === doc.id)
-            ? { ...doc, status: "ready" as const }
-            : doc
-        )
-      );
-      setUploading(false);
-    }, 3000);
+  const handleButtonClick = () => {
+    fileInputRef.current?.click();
   };
 
   const handleDelete = (id: string) => {
@@ -139,12 +165,14 @@ const Documents = () => {
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
+          onClick={handleButtonClick}
           className={`
-            border-2 border-dashed rounded-xl p-8 text-center transition-colors
+            border-2 border-dashed rounded-xl p-8 text-center transition-colors cursor-pointer
             ${isDragging ? "border-accent bg-accent/5" : "border-border hover:border-accent/50"}
           `}
         >
           <input
+            ref={fileInputRef}
             type="file"
             id="file-upload"
             className="hidden"
@@ -152,20 +180,18 @@ const Documents = () => {
             multiple
             onChange={handleFileSelect}
           />
-          <label htmlFor="file-upload" className="cursor-pointer">
-            <div className="w-12 h-12 rounded-full bg-accent/10 flex items-center justify-center mx-auto mb-4">
-              <Upload className={`w-6 h-6 text-accent ${uploading ? "animate-bounce" : ""}`} />
-            </div>
-            <h3 className="font-semibold mb-1">
-              {uploading ? "Uploading..." : "Upload documents"}
-            </h3>
-            <p className="text-sm text-muted-foreground mb-4">
-              Drag and drop PDF or DOCX files, or click to browse
-            </p>
-            <Button variant="accent" size="sm">
-              Select files
-            </Button>
-          </label>
+          <div className="w-12 h-12 rounded-full bg-accent/10 flex items-center justify-center mx-auto mb-4">
+            <Upload className={`w-6 h-6 text-accent ${uploading ? "animate-bounce" : ""}`} />
+          </div>
+          <h3 className="font-semibold mb-1">
+            {uploading ? "Uploading..." : "Upload documents"}
+          </h3>
+          <p className="text-sm text-muted-foreground mb-4">
+            Drag and drop PDF or DOCX files, or click to browse
+          </p>
+          <Button variant="accent" size="sm" type="button">
+            Select files
+          </Button>
         </div>
 
         {/* Search and filters */}
