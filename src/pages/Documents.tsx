@@ -39,16 +39,8 @@ interface Document {
   accessRole: string;
 }
 
-const mockDocuments: Document[] = [
-  { id: "1", name: "HR Policy Manual 2024.pdf", type: "pdf", size: "2.4 MB", uploadedAt: new Date("2024-01-15"), status: "ready", accessRole: "all" },
-  { id: "2", name: "Employee Handbook.docx", type: "docx", size: "1.8 MB", uploadedAt: new Date("2024-01-14"), status: "ready", accessRole: "all" },
-  { id: "3", name: "Sales Playbook Q1.pdf", type: "pdf", size: "5.2 MB", uploadedAt: new Date("2024-01-13"), status: "ready", accessRole: "sales" },
-  { id: "4", name: "Technical Documentation.pdf", type: "pdf", size: "8.1 MB", uploadedAt: new Date("2024-01-12"), status: "processing", accessRole: "support" },
-  { id: "5", name: "Onboarding Guide.docx", type: "docx", size: "3.2 MB", uploadedAt: new Date("2024-01-10"), status: "ready", accessRole: "hr" },
-];
-
 const Documents = () => {
-  const [documents, setDocuments] = useState<Document[]>(mockDocuments);
+  const [documents, setDocuments] = useState<Document[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [isDragging, setIsDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -283,7 +275,7 @@ const Documents = () => {
           <StatCard label="Total Documents" value={documents.length.toString()} />
           <StatCard label="Ready" value={documents.filter(d => d.status === "ready").length.toString()} />
           <StatCard label="Processing" value={documents.filter(d => d.status === "processing").length.toString()} />
-          <StatCard label="Total Size" value="20.7 MB" />
+          <StatCard label="Total Size" value={documents.length > 0 ? documents.reduce((acc, d) => acc + parseFloat(d.size), 0).toFixed(1) + " MB" : "0 MB"} />
         </div>
       </div>
     </DashboardLayout>
