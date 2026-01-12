@@ -63,7 +63,10 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
               <div className="w-8 h-8 rounded-lg bg-accent flex items-center justify-center">
                 <Brain className="w-5 h-5 text-accent-foreground" />
               </div>
-              <span className="font-semibold">Company Brain</span>
+              <div className="flex flex-col">
+                <span className="font-semibold text-sm">Company Brain</span>
+                <span className="text-xs text-muted-foreground">Acme Corporation</span>
+              </div>
             </Link>
             <Button 
               variant="ghost" 

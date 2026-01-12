@@ -53,11 +53,8 @@ const Dashboard = () => {
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: "assistant",
-        content: "Based on your company documents, I found relevant information. Our leave policy states that employees are entitled to 20 days of annual leave per year, plus public holidays. Unused leave can be carried over up to a maximum of 5 days.",
-        sources: [
-          { title: "HR Policy Manual 2024", excerpt: "Section 4.2 - Annual Leave Entitlement" },
-          { title: "Employee Handbook", excerpt: "Chapter 3 - Time Off Policies" },
-        ],
+        content: "I don't have that information in company data. Please upload relevant documents first to get answers.",
+        sources: [],
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, aiMessage]);
