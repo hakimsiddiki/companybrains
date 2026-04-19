@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Brain, ArrowLeft } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -14,29 +16,34 @@ const Login = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    
-    // Simulate login - will be replaced with actual auth
-    setTimeout(() => {
-      setIsLoading(false);
-      navigate("/dashboard");
-    }, 1000);
+
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+
+    setIsLoading(false);
+
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+
+    toast.success("Welcome back!");
+    navigate("/dashboard");
   };
 
   return (
     <div className="min-h-screen bg-background flex">
-      {/* Left Panel - Form */}
       <div className="flex-1 flex items-center justify-center p-8">
         <div className="w-full max-w-md">
           <Link to="/" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground mb-8">
             <ArrowLeft className="w-4 h-4" />
             Back to home
           </Link>
-          
+
           <div className="mb-8">
             <h1 className="text-2xl font-bold mb-2">Welcome back</h1>
             <p className="text-muted-foreground">Sign in to your account to continue</p>
           </div>
-          
+
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
@@ -49,14 +56,9 @@ const Login = () => {
                 required
               />
             </div>
-            
+
             <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="password">Password</Label>
-                <Link to="/forgot-password" className="text-sm text-accent hover:underline">
-                  Forgot password?
-                </Link>
-              </div>
+              <Label htmlFor="password">Password</Label>
               <Input
                 id="password"
                 type="password"
@@ -66,12 +68,12 @@ const Login = () => {
                 required
               />
             </div>
-            
+
             <Button type="submit" variant="accent" className="w-full" disabled={isLoading}>
               {isLoading ? "Signing in..." : "Sign in"}
             </Button>
           </form>
-          
+
           <p className="text-center text-sm text-muted-foreground mt-6">
             Don't have an account?{" "}
             <Link to="/signup" className="text-accent hover:underline">
@@ -80,8 +82,7 @@ const Login = () => {
           </p>
         </div>
       </div>
-      
-      {/* Right Panel - Branding */}
+
       <div className="hidden lg:flex flex-1 bg-primary items-center justify-center p-12">
         <div className="text-primary-foreground max-w-md">
           <div className="w-16 h-16 rounded-2xl bg-accent flex items-center justify-center mb-8">
