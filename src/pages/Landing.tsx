@@ -142,7 +142,7 @@ const Landing = () => {
         <div className="container mx-auto max-w-3xl text-center">
           <h2 className="text-3xl font-bold mb-4">Ready to unlock your company's knowledge?</h2>
           <p className="text-primary-foreground/80 mb-8">
-            Join hundreds of companies using AI Company Brain to make their teams more productive.
+            Make your team's knowledge instantly searchable and unlock productivity across your company.
           </p>
           <Link to="/signup">
             <Button variant="secondary" size="xl">

@@ -1,166 +1,179 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { 
-  Upload, 
-  FileText, 
-  Search, 
-  MoreVertical, 
-  Trash2, 
-  Download,
-  CheckCircle,
-  Clock,
-  AlertCircle,
-  X
+import {
+  Upload, FileText, Search, MoreVertical, Trash2, Download,
+  CheckCircle, Clock, AlertCircle,
 } from "lucide-react";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
-interface Document {
+interface DocRow {
   id: string;
   name: string;
-  type: "pdf" | "docx";
-  size: string;
-  uploadedAt: Date;
-  status: "processing" | "ready" | "error";
-  accessRole: string;
+  type: string;
+  size_bytes: number;
+  storage_path: string;
+  status: string;
+  access_role: string;
+  created_at: string;
 }
 
 const Documents = () => {
-  const [documents, setDocuments] = useState<Document[]>([]);
+  const { user } = useAuth();
+  const [documents, setDocuments] = useState<DocRow[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [isDragging, setIsDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [companyId, setCompanyId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFiles = useCallback((files: File[]) => {
-    // Filter valid files
-    const validFiles = files.filter(file => {
-      const ext = file.name.toLowerCase();
-      return ext.endsWith('.pdf') || ext.endsWith('.docx');
-    });
+  const loadDocs = useCallback(async () => {
+    const { data, error } = await supabase
+      .from("documents")
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (error) {
+      toast.error("Failed to load documents");
+      return;
+    }
+    setDocuments(data ?? []);
+  }, []);
 
+  useEffect(() => {
+    if (!user) return;
+    supabase.from("profiles").select("company_id").eq("id", user.id).maybeSingle()
+      .then(({ data }) => setCompanyId(data?.company_id ?? null));
+    loadDocs();
+  }, [user, loadDocs]);
+
+  const handleFiles = useCallback(async (files: File[]) => {
+    if (!companyId || !user) {
+      toast.error("Workspace not ready, please refresh");
+      return;
+    }
+    const validFiles = files.filter(f => {
+      const n = f.name.toLowerCase();
+      return n.endsWith(".pdf") || n.endsWith(".docx");
+    });
     if (validFiles.length === 0) {
       toast.error("Please upload PDF or DOCX files only");
       return;
     }
-
     if (validFiles.length !== files.length) {
       toast.warning("Some files were skipped (only PDF/DOCX allowed)");
     }
 
     setUploading(true);
-    
-    const newDocs: Document[] = validFiles.map((file, idx) => ({
-      id: `new-${Date.now()}-${idx}`,
-      name: file.name,
-      type: file.name.toLowerCase().endsWith(".pdf") ? "pdf" : "docx",
-      size: `${(file.size / (1024 * 1024)).toFixed(1)} MB`,
-      uploadedAt: new Date(),
-      status: "processing" as const,
-      accessRole: "all",
-    }));
+    let successCount = 0;
 
-    setDocuments((prev) => [...newDocs, ...prev]);
-    toast.success(`${validFiles.length} file(s) uploading...`);
+    for (const file of validFiles) {
+      const ext = file.name.toLowerCase().endsWith(".pdf") ? "pdf" : "docx";
+      const path = `${companyId}/${Date.now()}-${file.name}`;
 
-    // Simulate processing completion
-    setTimeout(() => {
-      setDocuments((prev) =>
-        prev.map((doc) =>
-          newDocs.find((nd) => nd.id === doc.id)
-            ? { ...doc, status: "ready" as const }
-            : doc
-        )
-      );
-      setUploading(false);
-      toast.success(`${validFiles.length} file(s) ready!`);
-    }, 3000);
-  }, []);
+      const { error: upErr } = await supabase.storage.from("documents").upload(path, file);
+      if (upErr) {
+        toast.error(`Upload failed: ${file.name}`);
+        continue;
+      }
 
-  const handleDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(true);
-  }, []);
+      const { error: insErr } = await supabase.from("documents").insert({
+        company_id: companyId,
+        uploaded_by: user.id,
+        name: file.name,
+        type: ext,
+        size_bytes: file.size,
+        storage_path: path,
+        status: "ready",
+        access_role: "all",
+      });
+      if (insErr) {
+        toast.error(`DB insert failed: ${file.name}`);
+        await supabase.storage.from("documents").remove([path]);
+        continue;
+      }
+      successCount++;
+    }
 
-  const handleDragLeave = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-  }, []);
+    setUploading(false);
+    if (successCount > 0) {
+      toast.success(`${successCount} file(s) uploaded`);
+      loadDocs();
+    }
+  }, [companyId, user, loadDocs]);
 
+  const handleDragOver = useCallback((e: React.DragEvent) => { e.preventDefault(); setIsDragging(true); }, []);
+  const handleDragLeave = useCallback((e: React.DragEvent) => { e.preventDefault(); setIsDragging(false); }, []);
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
-    
-    const files = Array.from(e.dataTransfer.files);
-    handleFiles(files);
+    handleFiles(Array.from(e.dataTransfer.files));
   }, [handleFiles]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files ? Array.from(e.target.files) : [];
     handleFiles(files);
-    // Reset input so same file can be selected again
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const handleButtonClick = () => fileInputRef.current?.click();
+
+  const handleDelete = async (doc: DocRow) => {
+    await supabase.storage.from("documents").remove([doc.storage_path]);
+    const { error } = await supabase.from("documents").delete().eq("id", doc.id);
+    if (error) {
+      toast.error("Delete failed");
+      return;
     }
+    toast.success("Document deleted");
+    loadDocs();
   };
 
-  const handleButtonClick = () => {
-    fileInputRef.current?.click();
+  const handleDownload = async (doc: DocRow) => {
+    const { data, error } = await supabase.storage.from("documents").createSignedUrl(doc.storage_path, 60);
+    if (error || !data) {
+      toast.error("Download failed");
+      return;
+    }
+    window.open(data.signedUrl, "_blank");
   };
 
-  const handleDelete = (id: string) => {
-    setDocuments((prev) => prev.filter((doc) => doc.id !== id));
-  };
-
-  const filteredDocuments = documents.filter((doc) =>
-    doc.name.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredDocuments = documents.filter(d =>
+    d.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const getStatusBadge = (status: Document["status"]) => {
-    switch (status) {
-      case "ready":
-        return (
-          <Badge variant="outline" className="bg-success/10 text-success border-success/20">
-            <CheckCircle className="w-3 h-3 mr-1" />
-            Ready
-          </Badge>
-        );
-      case "processing":
-        return (
-          <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20">
-            <Clock className="w-3 h-3 mr-1 animate-spin" />
-            Processing
-          </Badge>
-        );
-      case "error":
-        return (
-          <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/20">
-            <AlertCircle className="w-3 h-3 mr-1" />
-            Error
-          </Badge>
-        );
-    }
+  const getStatusBadge = (status: string) => {
+    if (status === "ready") return (
+      <Badge variant="outline" className="bg-success/10 text-success border-success/20">
+        <CheckCircle className="w-3 h-3 mr-1" />Ready
+      </Badge>
+    );
+    if (status === "processing") return (
+      <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20">
+        <Clock className="w-3 h-3 mr-1 animate-spin" />Processing
+      </Badge>
+    );
+    return (
+      <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/20">
+        <AlertCircle className="w-3 h-3 mr-1" />Error
+      </Badge>
+    );
   };
+
+  const formatSize = (b: number) => `${(b / (1024 * 1024)).toFixed(1)} MB`;
 
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        {/* Upload area */}
         <div
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
@@ -174,7 +187,6 @@ const Documents = () => {
           <input
             ref={fileInputRef}
             type="file"
-            id="file-upload"
             className="hidden"
             accept=".pdf,.docx"
             multiple
@@ -183,18 +195,15 @@ const Documents = () => {
           <div className="w-12 h-12 rounded-full bg-accent/10 flex items-center justify-center mx-auto mb-4">
             <Upload className={`w-6 h-6 text-accent ${uploading ? "animate-bounce" : ""}`} />
           </div>
-          <h3 className="font-semibold mb-1">
-            {uploading ? "Uploading..." : "Upload documents"}
-          </h3>
+          <h3 className="font-semibold mb-1">{uploading ? "Uploading..." : "Upload documents"}</h3>
           <p className="text-sm text-muted-foreground mb-4">
             Drag and drop PDF or DOCX files, or click to browse
           </p>
-          <Button variant="accent" size="sm" type="button">
+          <Button variant="accent" size="sm" type="button" disabled={uploading}>
             Select files
           </Button>
         </div>
 
-        {/* Search and filters */}
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -218,7 +227,6 @@ const Documents = () => {
           </Select>
         </div>
 
-        {/* Documents list */}
         <div className="bg-card border rounded-xl overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -247,43 +255,28 @@ const Documents = () => {
                           <div className="w-8 h-8 rounded bg-accent/10 flex items-center justify-center shrink-0">
                             <FileText className="w-4 h-4 text-accent" />
                           </div>
-                          <span className="font-medium text-sm truncate max-w-[200px] sm:max-w-[300px]">
-                            {doc.name}
-                          </span>
+                          <span className="font-medium text-sm truncate max-w-[200px] sm:max-w-[300px]">{doc.name}</span>
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-sm text-muted-foreground hidden sm:table-cell">
-                        {doc.size}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-muted-foreground hidden md:table-cell">
-                        {doc.uploadedAt.toLocaleDateString()}
-                      </td>
-                      <td className="px-4 py-3">
-                        {getStatusBadge(doc.status)}
-                      </td>
+                      <td className="px-4 py-3 text-sm text-muted-foreground hidden sm:table-cell">{formatSize(doc.size_bytes)}</td>
+                      <td className="px-4 py-3 text-sm text-muted-foreground hidden md:table-cell">{new Date(doc.created_at).toLocaleDateString()}</td>
+                      <td className="px-4 py-3">{getStatusBadge(doc.status)}</td>
                       <td className="px-4 py-3 hidden lg:table-cell">
-                        <Badge variant="secondary" className="capitalize">
-                          {doc.accessRole}
-                        </Badge>
+                        <Badge variant="secondary" className="capitalize">{doc.access_role}</Badge>
                       </td>
                       <td className="px-4 py-3 text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => e.stopPropagation()}>
                               <MoreVertical className="w-4 h-4" />
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem>
-                              <Download className="w-4 h-4 mr-2" />
-                              Download
+                          <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                            <DropdownMenuItem onClick={() => handleDownload(doc)}>
+                              <Download className="w-4 h-4 mr-2" />Download
                             </DropdownMenuItem>
-                            <DropdownMenuItem 
-                              onClick={() => handleDelete(doc.id)}
-                              className="text-destructive"
-                            >
-                              <Trash2 className="w-4 h-4 mr-2" />
-                              Delete
+                            <DropdownMenuItem onClick={() => handleDelete(doc)} className="text-destructive">
+                              <Trash2 className="w-4 h-4 mr-2" />Delete
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -296,12 +289,11 @@ const Documents = () => {
           </div>
         </div>
 
-        {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <StatCard label="Total Documents" value={documents.length.toString()} />
           <StatCard label="Ready" value={documents.filter(d => d.status === "ready").length.toString()} />
           <StatCard label="Processing" value={documents.filter(d => d.status === "processing").length.toString()} />
-          <StatCard label="Total Size" value={documents.length > 0 ? documents.reduce((acc, d) => acc + parseFloat(d.size), 0).toFixed(1) + " MB" : "0 MB"} />
+          <StatCard label="Total Size" value={documents.length > 0 ? formatSize(documents.reduce((a, d) => a + d.size_bytes, 0)) : "0 MB"} />
         </div>
       </div>
     </DashboardLayout>
