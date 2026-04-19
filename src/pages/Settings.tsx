@@ -133,7 +133,8 @@ const Settings = () => {
   const handleNotifToggle = async (field: "email_notifications" | "weekly_digest", value: boolean) => {
     if (!profile) return;
     setProfile({ ...profile, [field]: value });
-    const { error } = await supabase.from("profiles").update({ [field]: value }).eq("id", profile.id);
+    const update = field === "email_notifications" ? { email_notifications: value } : { weekly_digest: value };
+    const { error } = await supabase.from("profiles").update(update).eq("id", profile.id);
     if (error) toast.error(error.message);
   };
 
