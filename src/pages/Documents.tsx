@@ -61,9 +61,16 @@ const Documents = () => {
       toast.error("Workspace not ready, please refresh");
       return;
     }
+    const PDF_MIME = "application/pdf";
+    const DOCX_MIME = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+    const MAX_BYTES = 20 * 1024 * 1024; // 20MB
     const validFiles = files.filter(f => {
       const n = f.name.toLowerCase();
-      return n.endsWith(".pdf") || n.endsWith(".docx");
+      const extOk = n.endsWith(".pdf") || n.endsWith(".docx");
+      // Browsers sometimes leave f.type empty; require it to be empty OR an allowed MIME.
+      const mimeOk = !f.type || f.type === PDF_MIME || f.type === DOCX_MIME;
+      const sizeOk = f.size > 0 && f.size <= MAX_BYTES;
+      return extOk && mimeOk && sizeOk;
     });
     if (validFiles.length === 0) {
       toast.error("Please upload PDF or DOCX files only");
