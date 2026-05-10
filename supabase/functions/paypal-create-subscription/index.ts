@@ -5,11 +5,14 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const PAYPAL_BASE = "https://api-m.sandbox.paypal.com"; // switch to api-m.paypal.com for live
+const PAYPAL_BASE = (Deno.env.get("PAYPAL_MODE") ?? "sandbox").toLowerCase() === "live"
+  ? "https://api-m.paypal.com"
+  : "https://api-m.sandbox.paypal.com";
 
 async function getAccessToken() {
-  const id = Deno.env.get("PAYPAL_CLIENT_ID")!;
-  const secret = Deno.env.get("PAYPAL_CLIENT_SECRET")!;
+  const id = Deno.env.get("PAYPAL_CLIENT_ID")?.trim();
+  const secret = Deno.env.get("PAYPAL_CLIENT_SECRET")?.trim();
+  if (!id || !secret) throw new Error("Missing PAYPAL_CLIENT_ID or PAYPAL_CLIENT_SECRET");
   const auth = btoa(`${id}:${secret}`);
   const r = await fetch(`${PAYPAL_BASE}/v1/oauth2/token`, {
     method: "POST",
@@ -17,7 +20,7 @@ async function getAccessToken() {
     body: "grant_type=client_credentials",
   });
   const j = await r.json();
-  if (!r.ok) throw new Error(`PayPal token: ${JSON.stringify(j)}`);
+  if (!r.ok) throw new Error(`PayPal token (${PAYPAL_BASE}): ${JSON.stringify(j)}`);
   return j.access_token as string;
 }
 
