@@ -135,6 +135,45 @@ export type Database = {
           },
         ]
       }
+      subscriptions: {
+        Row: {
+          company_id: string
+          created_at: string
+          current_period_end: string | null
+          id: string
+          paypal_plan_id: string | null
+          paypal_subscription_id: string | null
+          plan: string
+          status: string
+          trial_end: string
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          current_period_end?: string | null
+          id?: string
+          paypal_plan_id?: string | null
+          paypal_subscription_id?: string | null
+          plan?: string
+          status?: string
+          trial_end?: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          current_period_end?: string | null
+          id?: string
+          paypal_plan_id?: string | null
+          paypal_subscription_id?: string | null
+          plan?: string
+          status?: string
+          trial_end?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           company_id: string | null

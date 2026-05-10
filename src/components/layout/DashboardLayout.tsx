@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Brain, MessageSquare, FileText, BarChart3, Settings, LogOut, Menu, X, ChevronDown, User } from "lucide-react";
+import { Brain, MessageSquare, FileText, BarChart3, Settings, LogOut, Menu, X, ChevronDown, User, CreditCard } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,6 +21,7 @@ const navigation = [
   { name: "Documents", href: "/documents", icon: FileText },
   { name: "Analytics", href: "/admin", icon: BarChart3 },
   { name: "Settings", href: "/settings", icon: Settings },
+  { name: "Billing", href: "/pricing", icon: CreditCard },
 ];
 
 const DashboardLayout = ({ children }: DashboardLayoutProps) => {
