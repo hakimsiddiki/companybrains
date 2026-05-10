@@ -5,23 +5,45 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const PAYPAL_BASE = (Deno.env.get("PAYPAL_MODE") ?? "sandbox").toLowerCase() === "live"
-  ? "https://api-m.paypal.com"
-  : "https://api-m.sandbox.paypal.com";
+const PAYPAL_ENDPOINTS = {
+  sandbox: "https://api-m.sandbox.paypal.com",
+  live: "https://api-m.paypal.com",
+} as const;
 
-async function getAccessToken() {
-  const id = Deno.env.get("PAYPAL_CLIENT_ID")?.trim();
-  const secret = Deno.env.get("PAYPAL_CLIENT_SECRET")?.trim();
-  if (!id || !secret) throw new Error("Missing PayPal credentials");
+type PayPalMode = keyof typeof PAYPAL_ENDPOINTS;
+
+const preferredMode = (): PayPalMode =>
+  (Deno.env.get("PAYPAL_MODE") ?? "sandbox").toLowerCase() === "live" ? "live" : "sandbox";
+
+const alternateMode = (mode: PayPalMode): PayPalMode => (mode === "live" ? "sandbox" : "live");
+
+async function requestAccessToken(mode: PayPalMode, id: string, secret: string) {
   const auth = btoa(`${id}:${secret}`);
-  const r = await fetch(`${PAYPAL_BASE}/v1/oauth2/token`, {
+  const base = PAYPAL_ENDPOINTS[mode];
+  const r = await fetch(`${base}/v1/oauth2/token`, {
     method: "POST",
     headers: { Authorization: `Basic ${auth}`, "Content-Type": "application/x-www-form-urlencoded" },
     body: "grant_type=client_credentials",
   });
   const j = await r.json();
-  if (!r.ok) throw new Error(`PayPal token (${PAYPAL_BASE}): ${JSON.stringify(j)}`);
-  return j.access_token as string;
+  return { ok: r.ok, token: j.access_token as string | undefined, error: j, base, mode };
+}
+
+async function getAccessToken() {
+  const id = Deno.env.get("PAYPAL_CLIENT_ID")?.trim();
+  const secret = Deno.env.get("PAYPAL_CLIENT_SECRET")?.trim();
+  if (!id || !secret) throw new Error("Missing PayPal credentials");
+  const firstMode = preferredMode();
+  const first = await requestAccessToken(firstMode, id, secret);
+  if (first.ok && first.token) return { token: first.token, base: first.base, mode: first.mode };
+
+  if (first.error?.error === "invalid_client") {
+    const second = await requestAccessToken(alternateMode(firstMode), id, secret);
+    if (second.ok && second.token) return { token: second.token, base: second.base, mode: second.mode };
+    throw new Error(`PayPal token failed for ${firstMode} and ${second.mode}: ${JSON.stringify(second.error)}`);
+  }
+
+  throw new Error(`PayPal token (${first.base}): ${JSON.stringify(first.error)}`);
 }
 
 Deno.serve(async (req) => {
@@ -39,8 +61,8 @@ Deno.serve(async (req) => {
     const { orderId, plan = "pro" } = await req.json();
     if (!orderId) throw new Error("Missing orderId");
 
-    const token = await getAccessToken();
-    const capRes = await fetch(`${PAYPAL_BASE}/v2/checkout/orders/${orderId}/capture`, {
+    const { token, base } = await getAccessToken();
+    const capRes = await fetch(`${base}/v2/checkout/orders/${orderId}/capture`, {
       method: "POST",
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
     });
