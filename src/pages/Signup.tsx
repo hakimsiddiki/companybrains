@@ -83,7 +83,7 @@ const Signup = () => {
             <>
               <div className="mb-8">
                 <h1 className="text-2xl font-bold mb-2">Create your account</h1>
-                <p className="text-muted-foreground">Get started in a minute</p>
+                <p className="text-muted-foreground">No credit card required • 14-day free trial</p>
               </div>
 
               <form onSubmit={handleStep1} className="space-y-4">
