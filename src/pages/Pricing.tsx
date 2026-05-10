@@ -7,14 +7,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 
-// Public PayPal sandbox client ID is fine in frontend; replace with your live client ID for production.
-const PAYPAL_CLIENT_ID = "sb"; // 'sb' = PayPal sandbox demo ID; works for testing buttons
-
 interface Sub {
   status: string;
   plan: string;
   trial_end: string;
   current_period_end: string | null;
+}
+
+interface PayPalConfig {
+  clientId: string;
+  mode: "sandbox" | "live";
 }
 
 declare global {
@@ -24,6 +26,7 @@ declare global {
 const Pricing = () => {
   const { session } = useAuth();
   const [sub, setSub] = useState<Sub | null>(null);
+  const [paypalConfig, setPaypalConfig] = useState<PayPalConfig | null>(null);
   const [ready, setReady] = useState(false);
   const btnRef = useRef<HTMLDivElement>(null);
 
@@ -35,12 +38,27 @@ const Pricing = () => {
   useEffect(() => { loadSub(); }, []);
 
   useEffect(() => {
-    if (window.paypal) { setReady(true); return; }
-    const s = document.createElement("script");
-    s.src = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}&currency=USD`;
-    s.onload = () => setReady(true);
-    document.body.appendChild(s);
+    supabase.functions.invoke("paypal-config").then(({ data, error }) => {
+      if (error || !data?.clientId) {
+        toast.error("Could not load PayPal settings");
+        return;
+      }
+      setPaypalConfig(data as PayPalConfig);
+    });
   }, []);
+
+  useEffect(() => {
+    if (!paypalConfig?.clientId) return;
+    setReady(false);
+    document.querySelectorAll('script[src*="paypal.com/sdk/js"]').forEach((script) => script.remove());
+    delete window.paypal;
+    const s = document.createElement("script");
+    s.src = `https://www.paypal.com/sdk/js?client-id=${encodeURIComponent(paypalConfig.clientId)}&currency=USD`;
+    s.dataset.paypalMode = paypalConfig.mode;
+    s.onload = () => setReady(true);
+    s.onerror = () => toast.error("Could not load PayPal checkout");
+    document.body.appendChild(s);
+  }, [paypalConfig?.clientId, paypalConfig?.mode]);
 
   useEffect(() => {
     if (!ready || !btnRef.current || !window.paypal || sub?.status === "active") return;
