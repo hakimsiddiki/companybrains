@@ -36,6 +36,20 @@ const Documents = () => {
   const [uploading, setUploading] = useState(false);
   const [companyId, setCompanyId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const processingRef = useRef<Set<string>>(new Set());
+
+  const processDoc = useCallback(async (id: string) => {
+    if (processingRef.current.has(id)) return;
+    processingRef.current.add(id);
+    try {
+      await supabase.functions.invoke("process-document", { body: { documentId: id } });
+    } catch {
+      /* status will reflect error; ignore here */
+    } finally {
+      processingRef.current.delete(id);
+      loadDocs();
+    }
+  }, []);
 
   const loadDocs = useCallback(async () => {
     const { data, error } = await supabase
@@ -47,7 +61,11 @@ const Documents = () => {
       return;
     }
     setDocuments(data ?? []);
-  }, []);
+    // Re-trigger extraction for any documents still pending processing.
+    (data ?? [])
+      .filter((d) => d.status === "processing")
+      .forEach((d) => processDoc(d.id));
+  }, [processDoc]);
 
   useEffect(() => {
     if (!user) return;
