@@ -37,10 +37,11 @@ const Dashboard = () => {
     e.preventDefault();
     if (!input.trim() || isLoading) return;
 
+    const question = input.trim();
     const userMessage: Message = {
       id: Date.now().toString(),
       role: "user",
-      content: input,
+      content: question,
       timestamp: new Date(),
     };
 
@@ -48,18 +49,35 @@ const Dashboard = () => {
     setInput("");
     setIsLoading(true);
 
-    // Simulate AI response - will be replaced with actual AI integration
-    setTimeout(() => {
+    try {
+      const { data, error } = await supabase.functions.invoke("chat", {
+        body: { question },
+      });
+
+      if (error) throw error;
+
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: "assistant",
-        content: "I don't have that information in company data. Please upload relevant documents first to get answers.",
+        content: data?.answer ?? "Something went wrong. Please try again.",
+        sources: data?.sources ?? [],
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, aiMessage]);
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to get an answer. Please try again.");
+      const aiMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: "assistant",
+        content: "Sorry, I ran into a problem answering that. Please try again.",
         sources: [],
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, aiMessage]);
+    } finally {
       setIsLoading(false);
-    }, 1500);
+    }
   };
 
   return (
