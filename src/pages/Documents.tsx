@@ -111,27 +111,29 @@ const Documents = () => {
         continue;
       }
 
-      const { error: insErr } = await supabase.from("documents").insert({
+      const { data: inserted, error: insErr } = await supabase.from("documents").insert({
         company_id: companyId,
         uploaded_by: user.id,
         name: file.name,
         type: ext,
         size_bytes: file.size,
         storage_path: path,
-        status: "ready",
+        status: "processing",
         access_role: "all",
-      });
-      if (insErr) {
+      }).select("id").single();
+      if (insErr || !inserted) {
         toast.error(`DB insert failed: ${file.name}`);
         await supabase.storage.from("documents").remove([path]);
         continue;
       }
+      // Extract text in the background so the AI can read this document.
+      processDoc(inserted.id);
       successCount++;
     }
 
     setUploading(false);
     if (successCount > 0) {
-      toast.success(`${successCount} file(s) uploaded`);
+      toast.success(`${successCount} file(s) uploaded — processing for AI…`);
       loadDocs();
     }
   }, [companyId, user, loadDocs]);
