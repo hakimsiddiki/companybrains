@@ -36,6 +36,20 @@ const Documents = () => {
   const [uploading, setUploading] = useState(false);
   const [companyId, setCompanyId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const processingRef = useRef<Set<string>>(new Set());
+
+  const processDoc = useCallback(async (id: string) => {
+    if (processingRef.current.has(id)) return;
+    processingRef.current.add(id);
+    try {
+      await supabase.functions.invoke("process-document", { body: { documentId: id } });
+    } catch {
+      /* status will reflect error; ignore here */
+    } finally {
+      processingRef.current.delete(id);
+      loadDocs();
+    }
+  }, []);
 
   const loadDocs = useCallback(async () => {
     const { data, error } = await supabase
@@ -47,7 +61,11 @@ const Documents = () => {
       return;
     }
     setDocuments(data ?? []);
-  }, []);
+    // Re-trigger extraction for any documents still pending processing.
+    (data ?? [])
+      .filter((d) => d.status === "processing")
+      .forEach((d) => processDoc(d.id));
+  }, [processDoc]);
 
   useEffect(() => {
     if (!user) return;
@@ -93,30 +111,32 @@ const Documents = () => {
         continue;
       }
 
-      const { error: insErr } = await supabase.from("documents").insert({
+      const { data: inserted, error: insErr } = await supabase.from("documents").insert({
         company_id: companyId,
         uploaded_by: user.id,
         name: file.name,
         type: ext,
         size_bytes: file.size,
         storage_path: path,
-        status: "ready",
+        status: "processing",
         access_role: "all",
-      });
-      if (insErr) {
+      }).select("id").single();
+      if (insErr || !inserted) {
         toast.error(`DB insert failed: ${file.name}`);
         await supabase.storage.from("documents").remove([path]);
         continue;
       }
+      // Extract text in the background so the AI can read this document.
+      processDoc(inserted.id);
       successCount++;
     }
 
     setUploading(false);
     if (successCount > 0) {
-      toast.success(`${successCount} file(s) uploaded`);
+      toast.success(`${successCount} file(s) uploaded — processing for AI…`);
       loadDocs();
     }
-  }, [companyId, user, loadDocs]);
+  }, [companyId, user, loadDocs, processDoc]);
 
   const handleDragOver = useCallback((e: React.DragEvent) => { e.preventDefault(); setIsDragging(true); }, []);
   const handleDragLeave = useCallback((e: React.DragEvent) => { e.preventDefault(); setIsDragging(false); }, []);

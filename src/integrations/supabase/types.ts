@@ -45,6 +45,7 @@ export type Database = {
         Row: {
           access_role: string
           company_id: string
+          content: string | null
           created_at: string
           id: string
           name: string
@@ -58,6 +59,7 @@ export type Database = {
         Insert: {
           access_role?: string
           company_id: string
+          content?: string | null
           created_at?: string
           id?: string
           name: string
@@ -71,6 +73,7 @@ export type Database = {
         Update: {
           access_role?: string
           company_id?: string
+          content?: string | null
           created_at?: string
           id?: string
           name?: string
