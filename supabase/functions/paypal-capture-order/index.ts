@@ -58,8 +58,13 @@ Deno.serve(async (req) => {
     const { data: { user } } = await userClient.auth.getUser();
     if (!user) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-    const { orderId, plan = "pro" } = await req.json();
-    if (!orderId) throw new Error("Missing orderId");
+    // Plan and its expected price are enforced server-side.
+    const PLAN_PRICES: Record<string, string> = { pro: "29.00" };
+    const body = await req.json().catch(() => ({}));
+    const orderId = body?.orderId;
+    if (!orderId || typeof orderId !== "string") throw new Error("Missing orderId");
+    const plan = typeof body?.plan === "string" && body.plan in PLAN_PRICES ? body.plan : "pro";
+    const expectedAmount = PLAN_PRICES[plan];
 
     const { token, base } = await getAccessToken();
     const capRes = await fetch(`${base}/v2/checkout/orders/${orderId}/capture`, {
@@ -68,6 +73,13 @@ Deno.serve(async (req) => {
     });
     const cap = await capRes.json();
     if (!capRes.ok || cap.status !== "COMPLETED") throw new Error(JSON.stringify(cap));
+
+    // Verify the captured amount matches the expected server-side price before activating.
+    const capturedAmount = cap?.purchase_units?.[0]?.payments?.captures?.[0]?.amount?.value;
+    const capturedCurrency = cap?.purchase_units?.[0]?.payments?.captures?.[0]?.amount?.currency_code;
+    if (capturedAmount !== expectedAmount || capturedCurrency !== "USD") {
+      throw new Error(`Captured amount mismatch: got ${capturedAmount} ${capturedCurrency}, expected ${expectedAmount} USD`);
+    }
 
     // Update subscription using service role
     const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
@@ -83,8 +95,9 @@ Deno.serve(async (req) => {
       }).eq("company_id", prof.company_id);
     }
 
-    return new Response(JSON.stringify({ success: true, capture: cap }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
-    return new Response(JSON.stringify({ error: String(e) }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    console.error("[paypal-capture-order]", e);
+    return new Response(JSON.stringify({ error: "Payment processing failed" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 });

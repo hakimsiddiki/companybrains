@@ -45,7 +45,8 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
-    return new Response(JSON.stringify({ error: String(e) }), {
+    console.error("[paypal-config]", e);
+    return new Response(JSON.stringify({ error: "Configuration unavailable" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

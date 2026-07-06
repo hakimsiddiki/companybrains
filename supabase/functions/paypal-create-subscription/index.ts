@@ -58,7 +58,11 @@ Deno.serve(async (req) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-    const { amount = "29.00", plan = "pro" } = await req.json().catch(() => ({}));
+    // Price and plan are enforced server-side. Never trust client-supplied amounts.
+    const requested = await req.json().catch(() => ({}));
+    const PLAN_PRICES: Record<string, string> = { pro: "29.00" };
+    const plan = typeof requested?.plan === "string" && requested.plan in PLAN_PRICES ? requested.plan : "pro";
+    const amount = PLAN_PRICES[plan];
 
     const { token, base, mode } = await getAccessToken();
     const orderRes = await fetch(`${base}/v2/checkout/orders`, {
@@ -74,6 +78,7 @@ Deno.serve(async (req) => {
 
     return new Response(JSON.stringify({ orderId: order.id, mode }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
-    return new Response(JSON.stringify({ error: String(e) }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    console.error("[paypal-create-subscription]", e);
+    return new Response(JSON.stringify({ error: "Payment processing failed" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 });
