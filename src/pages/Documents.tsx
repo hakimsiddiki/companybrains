@@ -136,7 +136,7 @@ const Documents = () => {
       toast.success(`${successCount} file(s) uploaded — processing for AI…`);
       loadDocs();
     }
-  }, [companyId, user, loadDocs]);
+  }, [companyId, user, loadDocs, processDoc]);
 
   const handleDragOver = useCallback((e: React.DragEvent) => { e.preventDefault(); setIsDragging(true); }, []);
   const handleDragLeave = useCallback((e: React.DragEvent) => { e.preventDefault(); setIsDragging(false); }, []);
