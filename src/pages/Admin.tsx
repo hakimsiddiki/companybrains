@@ -25,7 +25,19 @@ const Admin = () => {
 
   return (
     <DashboardLayout>
+      <Seo
+        title="Analytics — Company Brain"
+        description="Track how your team uses Company Brain: query volume, active users, document counts, and the most-asked questions across your workspace."
+        path="/admin"
+        noindex
+      />
       <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold">Analytics</h1>
+          <p className="text-muted-foreground">Usage insights across your workspace</p>
+        </div>
+
+        <h2 className="text-lg font-semibold">Overview</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <StatsCard title="Total Queries" value="0" icon={<MessageSquare className="w-4 h-4" />} />
           <StatsCard title="Active Users" value={userCount.toString()} icon={<Users className="w-4 h-4" />} />
@@ -33,6 +45,7 @@ const Admin = () => {
           <StatsCard title="Answer Rate" value="—" icon={<TrendingUp className="w-4 h-4" />} />
         </div>
 
+        <h2 className="text-lg font-semibold">Activity</h2>
         <div className="grid lg:grid-cols-2 gap-6">
           <Card>
             <CardHeader><CardTitle className="text-base">Queries This Week</CardTitle></CardHeader>
