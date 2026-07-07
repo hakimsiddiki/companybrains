@@ -90,7 +90,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                 <span className="text-xs text-muted-foreground truncate">{companyName || "Workspace"}</span>
               </div>
             </Link>
-            <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setSidebarOpen(false)}>
+            <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setSidebarOpen(false)} aria-label="Close sidebar">
               <X className="w-5 h-5" />
             </Button>
           </div>
