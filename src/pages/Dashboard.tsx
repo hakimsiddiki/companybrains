@@ -179,7 +179,7 @@ const Dashboard = () => {
               className="flex-1"
               disabled={isLoading}
             />
-            <Button type="submit" variant="accent" disabled={!input.trim() || isLoading}>
+            <Button type="submit" variant="accent" disabled={!input.trim() || isLoading} aria-label="Send message">
               {isLoading ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
