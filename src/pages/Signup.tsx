@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Brain, ArrowLeft, CheckCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import Seo from "@/components/Seo";
 
 const Signup = () => {
   const navigate = useNavigate();
