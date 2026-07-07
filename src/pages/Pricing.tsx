@@ -6,6 +6,23 @@ import { CheckCircle, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import Seo from "@/components/Seo";
+
+const pricingJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "Product",
+  name: "Company Brain Pro",
+  description:
+    "Pro plan for Company Brain: unlimited document uploads, AI-powered Q&A with citations, role-based access control, team collaboration, and usage analytics.",
+  brand: { "@type": "Brand", name: "Company Brain" },
+  offers: {
+    "@type": "Offer",
+    price: "29.00",
+    priceCurrency: "USD",
+    availability: "https://schema.org/InStock",
+  },
+};
+
 
 interface Sub {
   status: string;
