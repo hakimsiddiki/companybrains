@@ -24,6 +24,12 @@ const landingJsonLd = [
 const Landing = () => {
   return (
     <div className="min-h-screen bg-background">
+      <Seo
+        title="Company Brain — Secure AI Q&A for Internal Documents"
+        description="Upload your internal documents and get instant, accurate AI answers with source citations. Private and secure — Company Brain answers from your company data only, never the web."
+        path="/"
+        jsonLd={landingJsonLd}
+      />
       {/* Navigation */}
       <nav className="fixed top-0 left-0 right-0 z-50 glass-effect">
         <div className="container mx-auto px-6 h-16 flex items-center justify-between">
