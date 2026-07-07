@@ -201,6 +201,12 @@ const Documents = () => {
 
   return (
     <DashboardLayout>
+      <Seo
+        title="Documents — Company Brain"
+        description="Upload, organize, and manage the PDF and DOCX documents that power your company's AI knowledge base, with role-based access controls."
+        path="/documents"
+        noindex
+      />
       <div className="space-y-6">
         <div
           onDragOver={handleDragOver}
