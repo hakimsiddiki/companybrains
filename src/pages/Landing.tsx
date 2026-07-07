@@ -1,6 +1,25 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Brain, Upload, MessageSquare, Shield, Users, BarChart3, ArrowRight, CheckCircle } from "lucide-react";
+import { Brain, Upload, MessageSquare, Shield, Users, BarChart3, ArrowRight } from "lucide-react";
+import Seo from "@/components/Seo";
+
+const landingJsonLd = [
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: "Company Brain",
+    url: "https://companybrains.lovable.app/",
+    description:
+      "B2B SaaS platform for secure, private AI Q&A on internal company documents.",
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: "Company Brain",
+    url: "https://companybrains.lovable.app/",
+  },
+];
+
 
 const Landing = () => {
   return (
