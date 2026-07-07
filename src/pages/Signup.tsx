@@ -59,6 +59,11 @@ const Signup = () => {
 
   return (
     <div className="min-h-screen bg-background flex">
+      <Seo
+        title="Start Free Trial — Company Brain"
+        description="Create your Company Brain workspace in minutes. Upload internal documents and get secure, private AI Q&A with citations. 14-day free trial, no credit card required."
+        path="/signup"
+      />
       <div className="flex-1 flex items-center justify-center p-8">
         <div className="w-full max-w-md">
           <Link to="/" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground mb-8">
