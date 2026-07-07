@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Brain, ArrowLeft } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import Seo from "@/components/Seo";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -32,6 +33,11 @@ const Login = () => {
 
   return (
     <div className="min-h-screen bg-background flex">
+      <Seo
+        title="Sign In — Company Brain"
+        description="Sign in to Company Brain to ask questions and get instant, cited answers from your company's private document knowledge base."
+        path="/login"
+      />
       <div className="flex-1 flex items-center justify-center p-8">
         <div className="w-full max-w-md">
           <Link to="/" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground mb-8">

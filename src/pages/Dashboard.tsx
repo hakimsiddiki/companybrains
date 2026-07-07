@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Send, Bot, User, FileText, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import Seo from "@/components/Seo";
 
 interface Message {
   id: string;
@@ -84,6 +85,12 @@ const Dashboard = () => {
 
   return (
     <DashboardLayout>
+      <Seo
+        title="Chat — Company Brain"
+        description="Ask questions in natural language and get instant, accurate answers from your company's documents, complete with source citations."
+        path="/dashboard"
+        noindex
+      />
       <div className="h-[calc(100vh-10rem)] flex flex-col bg-card rounded-xl border">
         {/* Messages area */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
@@ -172,7 +179,7 @@ const Dashboard = () => {
               className="flex-1"
               disabled={isLoading}
             />
-            <Button type="submit" variant="accent" disabled={!input.trim() || isLoading}>
+            <Button type="submit" variant="accent" disabled={!input.trim() || isLoading} aria-label="Send message">
               {isLoading ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (

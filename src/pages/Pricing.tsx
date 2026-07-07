@@ -6,6 +6,23 @@ import { CheckCircle, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import Seo from "@/components/Seo";
+
+const pricingJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "Product",
+  name: "Company Brain Pro",
+  description:
+    "Pro plan for Company Brain: unlimited document uploads, AI-powered Q&A with citations, role-based access control, team collaboration, and usage analytics.",
+  brand: { "@type": "Brand", name: "Company Brain" },
+  offers: {
+    "@type": "Offer",
+    price: "29.00",
+    priceCurrency: "USD",
+    availability: "https://schema.org/InStock",
+  },
+};
+
 
 interface Sub {
   status: string;
@@ -84,6 +101,13 @@ const Pricing = () => {
 
   return (
     <DashboardLayout>
+      <Seo
+        title="Pricing — Company Brain"
+        description="Company Brain Pro is $29/mo: unlimited document uploads, AI Q&A with citations, role-based access, team collaboration, and analytics. 14-day free trial, no credit card required."
+        path="/pricing"
+        jsonLd={pricingJsonLd}
+        noindex
+      />
       <div className="max-w-3xl space-y-6">
         <div>
           <h1 className="text-2xl font-bold">Plans & Billing</h1>
@@ -105,7 +129,10 @@ const Pricing = () => {
           </Card>
         )}
 
+        <h2 className="text-lg font-semibold">Choose your plan</h2>
+
         <Card className="border-accent/40">
+
           <CardHeader>
             <div className="flex items-baseline justify-between">
               <CardTitle>Pro</CardTitle>

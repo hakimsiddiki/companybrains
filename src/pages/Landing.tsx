@@ -1,10 +1,35 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Brain, Upload, MessageSquare, Shield, Users, BarChart3, ArrowRight, CheckCircle } from "lucide-react";
+import { Brain, Upload, MessageSquare, Shield, Users, BarChart3, ArrowRight } from "lucide-react";
+import Seo from "@/components/Seo";
+
+const landingJsonLd = [
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: "Company Brain",
+    url: "https://companybrains.lovable.app/",
+    description:
+      "B2B SaaS platform for secure, private AI Q&A on internal company documents.",
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: "Company Brain",
+    url: "https://companybrains.lovable.app/",
+  },
+];
+
 
 const Landing = () => {
   return (
     <div className="min-h-screen bg-background">
+      <Seo
+        title="Company Brain — Secure AI Q&A for Internal Documents"
+        description="Upload your internal documents and get instant, accurate AI answers with source citations. Private and secure — Company Brain answers from your company data only, never the web."
+        path="/"
+        jsonLd={landingJsonLd}
+      />
       {/* Navigation */}
       <nav className="fixed top-0 left-0 right-0 z-50 glass-effect">
         <div className="container mx-auto px-6 h-16 flex items-center justify-between">
@@ -25,6 +50,7 @@ const Landing = () => {
         </div>
       </nav>
 
+      <main>
       {/* Hero Section */}
       <section className="pt-32 pb-20 px-6">
         <div className="container mx-auto max-w-4xl text-center">
@@ -152,6 +178,7 @@ const Landing = () => {
           </Link>
         </div>
       </section>
+      </main>
 
       {/* Footer */}
       <footer className="py-12 px-6 border-t">

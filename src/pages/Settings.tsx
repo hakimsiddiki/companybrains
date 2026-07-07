@@ -20,6 +20,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import Seo from "@/components/Seo";
 
 interface Profile {
   id: string;
@@ -140,7 +141,17 @@ const Settings = () => {
 
   return (
     <DashboardLayout>
+      <Seo
+        title="Settings — Company Brain"
+        description="Manage your Company Brain account: profile details, password, company workspace, team access, and email notification preferences."
+        path="/settings"
+        noindex
+      />
       <div className="max-w-4xl">
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold">Settings</h1>
+          <h2 className="text-muted-foreground font-normal">Manage your account and workspace preferences</h2>
+        </div>
         <Tabs defaultValue="profile" className="space-y-6">
           <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:inline-flex">
             <TabsTrigger value="profile" className="gap-2"><User className="w-4 h-4 hidden sm:inline" />Profile</TabsTrigger>
