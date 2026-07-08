@@ -40,6 +40,10 @@ Deno.serve(async (req) => {
     if (!question || typeof question !== "string") {
       return json({ error: "question is required" }, 400);
     }
+    const MAX_QUESTION_CHARS = 2000;
+    if (question.trim().length === 0 || question.length > MAX_QUESTION_CHARS) {
+      return json({ error: "Question must be between 1 and 2000 characters." }, 400);
+    }
 
     const { data: profile } = await admin
       .from("profiles")
