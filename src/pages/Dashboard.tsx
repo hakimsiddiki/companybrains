@@ -40,7 +40,7 @@ const Dashboard = () => {
     e.preventDefault();
     if (!input.trim() || isLoading) return;
 
-    const question = input.trim();
+    const question = input.trim().slice(0, 2000);
     const userMessage: Message = {
       id: Date.now().toString(),
       role: "user",
