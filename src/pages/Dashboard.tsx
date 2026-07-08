@@ -178,6 +178,7 @@ const Dashboard = () => {
               placeholder="Ask a question about your company documents..."
               className="flex-1"
               disabled={isLoading}
+              maxLength={2000}
             />
             <Button type="submit" variant="accent" disabled={!input.trim() || isLoading} aria-label="Send message">
               {isLoading ? (
